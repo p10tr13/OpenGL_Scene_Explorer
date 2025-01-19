@@ -30,6 +30,9 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+// po³o¿enie oœwietlenia
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
 int main()
 {
 	init_glfw();
@@ -105,20 +108,6 @@ int main()
 		1, 2, 3
 	};
 
-	glm::vec3 cubePositions[] =
-	{
-	glm::vec3(0.0f,  0.0f,  0.0f),
-	glm::vec3(2.0f,  5.0f, -15.0f),
-	glm::vec3(-1.5f, -2.2f, -2.5f),
-	glm::vec3(-3.8f, -2.0f, -12.3f),
-	glm::vec3(2.4f, -0.4f, -3.5f),
-	glm::vec3(-1.7f,  3.0f, -7.5f),
-	glm::vec3(1.3f, -2.0f, -2.5f),
-	glm::vec3(1.5f,  2.0f, -2.5f),
-	glm::vec3(1.5f,  0.2f, -1.5f),
-	glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
-
 	unsigned int texture;
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -142,11 +131,13 @@ int main()
 	}
 	stbi_image_free(data);
 
-	Shader ourShader("shader.vs", "shader.fs");
+	Shader lightingShader("shader.vs", "shader.fs");
+	Shader lightCubeShader("light_cube_shader.vs", "light_cube_shader.fs");
 
-	unsigned int VBO, VAO, EBO;
+	unsigned int VBO, VAO, EBO, lightVAO;
 
 	glGenVertexArrays(1, &VAO);
+	glGenVertexArrays(1, &lightVAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
 
@@ -165,15 +156,13 @@ int main()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	glBindVertexArray(lightVAO);
 
-	glm::mat4 projection;
-	projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
-	int modelLoc = glGetUniformLocation(ourShader.ID, "model");
-	int viewLoc = glGetUniformLocation(ourShader.ID, "view");
-	int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
 	// render loop
 	while (!glfwWindowShouldClose(window))
@@ -192,28 +181,29 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture);
 
-		ourShader.use();
+		lightingShader.use();
+		lightingShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();
-		ourShader.setMat4("view", view);
+		lightingShader.setMat4("projection", projection);
+		lightingShader.setMat4("view", view);
 
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glm::mat4 model = glm::mat4(1.0f);
+		lightingShader.setMat4("model", model);
 
 		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		for (unsigned int i = 0; i < 10; i++)
-		{
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * i;
-			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-			ourShader.setMat4("model", model);
+		lightCubeShader.use();
+		lightCubeShader.setMat4("projection", projection);
+		lightCubeShader.setMat4("view", view);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, lightPos);
+		model = glm::scale(model, glm::vec3(0.2f));
+		lightCubeShader.setMat4("model", model);
 
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-
+		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glfwSwapBuffers(window);
@@ -221,6 +211,7 @@ int main()
 	}
 
 	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &lightVAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 
