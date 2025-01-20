@@ -3,12 +3,12 @@
 
 out vec4 FragColor;
 
-struct Material
-{
-    sampler2D diffuse;
-    sampler2D specular;   
-    float shininess;
-};
+//struct Material
+//{
+//    sampler2D diffuse;
+//    sampler2D specular;   
+//    float shininess;
+//};
 
 struct DirLight
 {
@@ -34,9 +34,11 @@ in vec3 FragPos;
 in vec3 LightPos[NR_POINT_LIGHTS];
 in vec3 DirLightDirection;
 
-uniform Material material;
+//uniform Material material;
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
+uniform sampler2D texture_diffuse1;
+uniform sampler2D texture_specular1;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightDirection);
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos);
@@ -60,9 +62,9 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightDirection
 
     vec3 reflectDir = reflect(-lightDir, normal);
 
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TextCoord));
-    vec3 diffuse = light.diffuse * max(dot(normal, lightDir), 0.0) * vec3(texture(material.diffuse, TextCoord));
-    vec3 specular = light.specular * pow(max(dot(viewDir, reflectDir), 0.0), material.shininess) * vec3(texture(material.specular, TextCoord));
+    vec3 ambient = light.ambient * vec3(texture(texture_diffuse1, TextCoord));
+    vec3 diffuse = light.diffuse * max(dot(normal, lightDir), 0.0) * vec3(texture(texture_diffuse1, TextCoord));
+    vec3 specular = light.specular * pow(max(dot(viewDir, reflectDir), 0.0), 32.0f) * vec3(texture(texture_specular1, TextCoord));
 
     return (ambient + specular + diffuse);
 };
@@ -72,12 +74,40 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     vec3 lightDir = normalize(lightPos - fragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
 
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TextCoord));
-    vec3 diffuse = max(dot(normal, lightDir), 0.0) * light.diffuse * vec3(texture(material.diffuse, TextCoord));
-    vec3 specular = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess) * vec3(texture(material.specular,TextCoord)) * light.specular;
+    vec3 ambient = light.ambient * vec3(texture(texture_diffuse1, TextCoord));
+    vec3 diffuse = max(dot(normal, lightDir), 0.0) * light.diffuse * vec3(texture(texture_diffuse1, TextCoord));
+    vec3 specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0f) * vec3(texture(texture_specular1,TextCoord)) * light.specular;
 
     float distance = length(lightPos - FragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
     return ((ambient + specular + diffuse) * attenuation);
 };
+
+//vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightDirection)
+//{
+//    vec3 lightDir = normalize(-lightDirection);
+//
+//    vec3 reflectDir = reflect(-lightDir, normal);
+//
+//    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TextCoord));
+//    vec3 diffuse = light.diffuse * max(dot(normal, lightDir), 0.0) * vec3(texture(material.diffuse, TextCoord));
+//    vec3 specular = light.specular * pow(max(dot(viewDir, reflectDir), 0.0), material.shininess) * vec3(texture(material.specular, TextCoord));
+//
+//    return (ambient + specular + diffuse);
+//};
+//
+//vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos)
+//{
+//    vec3 lightDir = normalize(lightPos - fragPos);
+//    vec3 reflectDir = reflect(-lightDir, normal);
+//
+//    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TextCoord));
+//    vec3 diffuse = max(dot(normal, lightDir), 0.0) * light.diffuse * vec3(texture(material.diffuse, TextCoord));
+//    vec3 specular = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess) * vec3(texture(material.specular,TextCoord)) * light.specular;
+//
+//    float distance = length(lightPos - FragPos);
+//    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+//
+//    return ((ambient + specular + diffuse) * attenuation);
+//};
