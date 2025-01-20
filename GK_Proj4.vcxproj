@@ -150,6 +150,8 @@
     <None Include="light_cube_shader.vs" />
     <None Include="shader.fs" />
     <None Include="shader.vs" />
+    <None Include="skybox_shader.fs" />
+    <None Include="skybox_shader.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -61,5 +61,11 @@
     <None Include="light_cube_shader.fs">
       <Filter>Pliki zasobów</Filter>
     </None>
+    <None Include="skybox_shader.vs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="skybox_shader.fs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
   </ItemGroup>
 </Project>
