@@ -18,6 +18,7 @@ void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 unsigned int loadTexture(const char* path);
 unsigned int loadCubemap(std::string path);
+void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modes);
 
 // ustawienia ekranu
 const unsigned int SCR_WIDTH = 800;
@@ -64,6 +65,8 @@ int main()
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
+
+	glfwSetKeyCallback(window, settingsKeyCallback);
 
 	unsigned int daySkyboxTexture = loadCubemap("resources/skyboxes/day/");
 
@@ -296,18 +299,6 @@ void processInput(GLFWwindow* window)
 		camera.ProcessKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-	{
-		if (!fKeyPressed)
-		{
-			fogOn = !fogOn;
-			fKeyPressed = true;
-		}
-	}
-	else
-	{
-		fKeyPressed = false;
-	}
 }
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
@@ -407,4 +398,10 @@ unsigned int loadCubemap(std::string path)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 	return textureID;
+}
+
+void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modes)
+{
+	if (key == GLFW_KEY_F && action == GLFW_PRESS)
+		fogOn = !fogOn;
 }
