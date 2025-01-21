@@ -44,13 +44,13 @@ float lastFrame = 0.0f;
 
 // po³o¿enie oœwietlenia
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-glm::vec3 sunPos(-0.2f, -1.0f, -0.3f);
+glm::vec3 sunPos(0.2f, -1.0f, 0.3f);
 
 int main()
 {
 	init_glfw();
 
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GK Project 4", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GK Projekt 4", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;

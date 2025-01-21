@@ -32,7 +32,7 @@ uniform sampler2D roughnessMap;
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 
-uniform bool FogOn = true;
+uniform bool FogOn;
 uniform float FogExpDensity = 1.0;
 uniform float FogEnd = -100.0;
 uniform vec3 FogColor = vec3(1.0, 1.0, 1.0);

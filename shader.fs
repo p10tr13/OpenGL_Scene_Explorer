@@ -41,7 +41,7 @@ uniform sampler2D texture_diffuse1;
 uniform sampler2D texture_specular1;
 
 // fog properties
-uniform bool FogOn = true;
+uniform bool FogOn;
 uniform float FogExpDensity = 1.0;
 uniform float FogEnd = -100.0;
 uniform vec3 FogColor = vec3(1.0, 1.0, 1.0);
