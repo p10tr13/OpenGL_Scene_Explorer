@@ -67,5 +67,11 @@
     <None Include="skybox_shader.fs">
       <Filter>Pliki zasobów</Filter>
     </None>
+    <None Include="floor_shader.vs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="floor_shader.fs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
   </ItemGroup>
 </Project>

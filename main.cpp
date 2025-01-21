@@ -19,6 +19,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 unsigned int loadTexture(const char* path);
 unsigned int loadCubemap(std::string path);
 void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modes);
+void setLights(Shader shader);
 
 // ustawienia ekranu
 const unsigned int SCR_WIDTH = 800;
@@ -43,6 +44,7 @@ float lastFrame = 0.0f;
 
 // po³o¿enie oœwietlenia
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 sunPos(-0.2f, -1.0f, -0.3f);
 
 int main()
 {
@@ -69,6 +71,8 @@ int main()
 	glfwSetKeyCallback(window, settingsKeyCallback);
 
 	unsigned int daySkyboxTexture = loadCubemap("resources/skyboxes/day/");
+	unsigned int groundAlbedoMap = loadTexture("resources/ground/Ground037_4K-JPG_Color.jpg");
+	unsigned int groundRoughnessMap = loadTexture("resources/ground/Ground037_4K-JPG_Roughness.jpg");
 
 	float skyboxVertices[] = {
         
@@ -176,6 +180,15 @@ int main()
 	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 	};
 
+	float floorVertices[] = {
+	-10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  0.0f,
+	 10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  10.0f, 0.0f,
+	 10.0f, 0.0f,  10.0f,  0.0f,  0.0f, 1.0f,  10.0f, 10.0f,
+	-10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  0.0f,
+	 10.0f, 0.0f,  10.0f,  0.0f,  0.0f, 1.0f,  10.0f, 10.0f,
+	-10.0f, 0.0f,  10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  10.0f,
+	};
+
 	unsigned int indices[] = {
 		0, 1, 3,
 		1, 2, 3
@@ -184,8 +197,29 @@ int main()
 	Shader lightingShader("shader.vs", "shader.fs");
 	Shader lightCubeShader("light_cube_shader.vs", "light_cube_shader.fs");
 	Shader skyboxShader("skybox_shader.vs", "skybox_shader.fs");
+	Shader floorShader("floor_shader.vs", "floor_shader.fs");
 
 	Model backpackModel("resources/backpack/backpack.obj");
+
+	// floor VAO
+	unsigned int floorVAO, floorVBO;
+	glGenVertexArrays(1, &floorVAO);
+	glGenBuffers(1, &floorVBO);
+	glBindVertexArray(floorVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(0);
 
 	// skybox VAO
 	unsigned int skyboxVAO, skyboxVBO;
@@ -196,6 +230,10 @@ int main()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	floorShader.use();
+	floorShader.setInt("albedoMap", 0);
+	floorShader.setInt("roughnessMap", 1);
 
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
@@ -220,34 +258,33 @@ int main()
 		lightingShader.setMat4("projection", projection);
 		lightingShader.setMat4("view", view);
 
-		// point light 1
-		lightingShader.setVec3("lightPos[0]", lightPos);
-		lightingShader.setVec3("pointLights[0].ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-		lightingShader.setVec3("pointLights[0].diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
-		lightingShader.setVec3("pointLights[0].specular", glm::vec3(1.0f, 1.0f, 1.0f));
-		lightingShader.setFloat("pointLights[0].constant", 1.0f);
-		lightingShader.setFloat("pointLights[0].linear", 0.07f);
-		lightingShader.setFloat("pointLights[0].quadratic", 0.017f);
-		// directional light
-		lightingShader.setVec3("dirLightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));
-		lightingShader.setVec3("dirLight.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-		lightingShader.setVec3("dirLight.diffuse", glm::vec3(0.4f, 0.4f, 0.4f));
-		lightingShader.setVec3("dirLight.specular", glm::vec3(0.5f, 0.5f, 0.5f));
-		// point light 2
-		lightingShader.setVec3("lightPos[1]", glm::vec3(2.3f, -3.3f, -4.0f));
-		lightingShader.setVec3("pointLights[1].ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-		lightingShader.setVec3("pointLights[1].diffuse", glm::vec3(0.8f, 0.8f, 0.8f));
-		lightingShader.setVec3("pointLights[1].specular", glm::vec3(1.0f, 1.0f, 1.0f));
-		lightingShader.setFloat("pointLights[1].constant", 1.0f);
-		lightingShader.setFloat("pointLights[1].linear", 0.09f);
-		lightingShader.setFloat("pointLights[1].quadratic", 0.032f);
+		setLights(lightingShader);
 
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.4f, 0.0f));
 		model = glm::scale(model, glm::vec3(0.2f));
 		lightingShader.setMat4("model", model);
 		lightingShader.setBool("FogOn", fogOn);
 		backpackModel.Draw(lightingShader);
+
+		// rysowanie pod³o¿a
+		floorShader.use();
+		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		view = camera.GetViewMatrix();
+		floorShader.setMat4("projection", projection);
+		floorShader.setMat4("view", view);
+
+		glBindVertexArray(floorVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, groundAlbedoMap);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, groundRoughnessMap);
+
+		setLights(floorShader);
+		model = glm::mat4(1.0f);
+		floorShader.setMat4("model", model);
+		floorShader.setBool("FogOn", fogOn);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// rysowanie skyboxa
 		glDepthFunc(GL_LEQUAL);
@@ -404,4 +441,21 @@ void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, 
 {
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
 		fogOn = !fogOn;
+}
+
+void setLights(Shader shader)
+{
+	// point light 1
+	shader.setVec3("lightPos[0]", lightPos);
+	shader.setVec3("pointLights[0].ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+	shader.setVec3("pointLights[0].diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+	shader.setVec3("pointLights[0].specular", glm::vec3(1.0f, 1.0f, 1.0f));
+	shader.setFloat("pointLights[0].constant", 1.0f);
+	shader.setFloat("pointLights[0].linear", 0.07f);
+	shader.setFloat("pointLights[0].quadratic", 0.017f);
+	// directional light
+	shader.setVec3("dirLightDirection", sunPos);
+	shader.setVec3("dirLight.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
+	shader.setVec3("dirLight.diffuse", glm::vec3(0.4f, 0.4f, 0.4f));
+	shader.setVec3("dirLight.specular", glm::vec3(0.5f, 0.5f, 0.5f));
 }
