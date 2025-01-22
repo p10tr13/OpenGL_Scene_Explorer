@@ -148,6 +148,8 @@
     <ClInclude Include="headers\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\container_shader.fs" />
+    <None Include="shaders\container_shader.vs" />
     <None Include="shaders\floor_shader.fs" />
     <None Include="shaders\floor_shader.vs" />
     <None Include="shaders\light_cube_shader.fs" />
@@ -157,7 +159,7 @@
     <None Include="shaders\skybox_shader.fs" />
     <None Include="shaders\skybox_shader.vs" />
     <None Include="shaders\sphere_shader.fs" />
-    <None Include="sphere_shader.vs" />
+    <None Include="shaders\sphere_shader.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

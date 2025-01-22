@@ -79,10 +79,16 @@
     <None Include="shaders\skybox_shader.vs">
       <Filter>Pliki zasobów</Filter>
     </None>
-    <None Include="sphere_shader.vs">
+    <None Include="shaders\sphere_shader.fs">
       <Filter>Pliki zasobów</Filter>
     </None>
-    <None Include="shaders\sphere_shader.fs">
+    <None Include="shaders\container_shader.fs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="shaders\container_shader.vs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="shaders\sphere_shader.vs">
       <Filter>Pliki zasobów</Filter>
     </None>
   </ItemGroup>

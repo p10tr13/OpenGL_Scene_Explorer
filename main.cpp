@@ -45,7 +45,7 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 // static
-Camera staticCamera(3.0f, 3.5f, 3.0f, 0.0f, 0.0f, 0.0f);
+Camera staticCamera(3.0f, 4.5f, 4.0f, 0.0f, 0.0f, 0.0f);
 // tracking
 Camera trackingCamera(glm::vec3(0.0f, 3.0f, 4.0f));
 
@@ -62,11 +62,14 @@ float lastFrame = 0.0f;
 // po³o¿enie oœwietlenia
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 glm::vec3 sunPos(0.2f, -1.0f, 0.3f);
+glm::vec3 flashlightPos(0.0f, 0.0f, 0.0f);
+glm::vec3 flashlightStartDir(0.0f, 0.0f, -1.0f);
+glm::vec3 flashlightDir(0.0f, 0.0f, 0.0f);
 
 // poruszanie siê obiektu po okrêgu
-const float RADIUS = 3.0f;
+const float RADIUS = 0.5f;
 const float CIRCURAL_SPEED = 1.0f;
-const float Y_POSITION = 0.4f;
+const float Y_POSITION = 0.25f;
 float theta = 0.0f;
 
 int main()
@@ -96,6 +99,8 @@ int main()
 	unsigned int daySkyboxTexture = loadCubemap("resources/skyboxes/day/");
 	unsigned int groundAlbedoMap = loadTexture("resources/ground/Ground037_4K-JPG_Color.jpg");
 	unsigned int groundRoughnessMap = loadTexture("resources/ground/Ground037_4K-JPG_Roughness.jpg");
+	unsigned int boxDiffuseMap = loadTexture("resources/container/container2.png");
+	unsigned int boxSpecularMap = loadTexture("resources/container/container2_specular.png");
 
 	float skyboxVertices[] = {
         
@@ -159,7 +164,7 @@ int main()
 	glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
 
-	float vertices[] = {
+	float boxVertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
 	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
 	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
@@ -204,15 +209,15 @@ int main()
 	};
 
 	float floorVertices[] = {
-	-10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  0.0f,
-	 10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  10.0f, 0.0f,
-	 10.0f, 0.0f,  10.0f,  0.0f,  0.0f, 1.0f,  10.0f, 10.0f,
-	-10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  0.0f,
-	 10.0f, 0.0f,  10.0f,  0.0f,  0.0f, 1.0f,  10.0f, 10.0f,
-	-10.0f, 0.0f,  10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  10.0f,
+	-10.0f, 0.0f, -10.0f,  0.0f,  1.0f, 0.0f,  0.0f,  0.0f,
+	 10.0f, 0.0f, -10.0f,  0.0f,  1.0f, 0.0f,  10.0f, 0.0f,
+	 10.0f, 0.0f,  10.0f,  0.0f,  1.0f, 0.0f,  10.0f, 10.0f,
+	-10.0f, 0.0f, -10.0f,  0.0f,  1.0f, 0.0f,  0.0f,  0.0f,
+	 10.0f, 0.0f,  10.0f,  0.0f,  1.0f, 0.0f,  10.0f, 10.0f,
+	-10.0f, 0.0f,  10.0f,  0.0f,  1.0f, 0.0f,  0.0f,  10.0f,
 	};
 
-	unsigned int indices[] = {
+	unsigned int boxIndices[] = {
 		0, 1, 3,
 		1, 2, 3
 	};
@@ -222,9 +227,36 @@ int main()
 	Shader skyboxShader("shaders/skybox_shader.vs", "shaders/skybox_shader.fs");
 	Shader floorShader("shaders/floor_shader.vs", "shaders/floor_shader.fs");
 	Shader sphereShader("shaders/sphere_shader.vs", "shaders/sphere_shader.fs");
+	Shader containerShader("shaders/container_shader.vs", "shaders/container_shader.fs");
 
 	Model backpackModel("resources/backpack/backpack.obj");
 	Sphere sphere;
+
+	// box VAO
+	unsigned int boxVAO, boxVBO;
+	glGenVertexArrays(1, &boxVAO);
+	glGenBuffers(1, &boxVBO);
+	glBindVertexArray(boxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, boxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(boxVertices), boxVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	// light VAO
+	unsigned int lightCubeVAO, lightCubeVBO;
+	glGenVertexArrays(1, &lightCubeVAO);
+	glGenBuffers(1, &lightCubeVBO);
+	glBindVertexArray(lightCubeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, lightCubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(boxVertices), boxVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	// floor VAO
 	unsigned int floorVAO, floorVBO;
@@ -281,6 +313,10 @@ int main()
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
 
+	containerShader.use();
+	containerShader.setInt("material.diffuse", 0);
+	containerShader.setInt("material.specular", 1);
+
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -288,45 +324,64 @@ int main()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
+		// update kamery œledz¹cej poruszaj¹cy siê obiekt
+		theta += CIRCURAL_SPEED * deltaTime;
+		float new_x = RADIUS * cos(theta), new_z = RADIUS * sin(theta);
+		trackingCamera.UpdateTarget(glm::vec3(new_x, Y_POSITION, new_z));
+
 		// input
 		processInput(window);
 
 		// render commands
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// plecak
-		lightingShader.use();
-
-		setLights(lightingShader);
-		setFog(lightingShader);
-
-		// nowe po³o¿enie
-		theta += CIRCURAL_SPEED * deltaTime;
-		float new_x = RADIUS * cos(theta), new_z = RADIUS * sin(theta);
-		trackingCamera.UpdateTarget(glm::vec3(new_x, Y_POSITION, new_z));
+		// container
+		containerShader.use();
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(new_x, Y_POSITION, new_z));
 		model = glm::rotate(model, (-1) * atan2(new_z, new_x), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(0.2f));
-		lightingShader.setMat4("model", model);
+		model = glm::scale(model, glm::vec3(0.5f));
+		flashlightDir = glm::vec3(model * glm::vec4(flashlightStartDir, 0.0f));
+		flashlightPos = glm::vec3(new_x, Y_POSITION, new_z);
+		setLights(containerShader);
+		setFog(containerShader);
+		containerShader.setMat4("model", model);
 		glm::mat4 projection = GetProjectionMatrix();
 		glm::mat4 view = GetViewMatrix();
+		containerShader.setMat4("projection", projection);
+		containerShader.setMat4("view", view);
+		containerShader.setFloat("material.shininess", 64.0f);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, boxDiffuseMap);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, boxSpecularMap);
+		glBindVertexArray(boxVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// plecak
+		lightingShader.use();
+		setLights(lightingShader);
+		setFog(lightingShader);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(-2.0f, 0.4f, 0.0f));
+		model = glm::scale(model, glm::vec3(0.2f));
+		lightingShader.setMat4("model", model);
+		projection = GetProjectionMatrix();
+		view = GetViewMatrix();
 		lightingShader.setMat4("projection", projection);
 		lightingShader.setMat4("view", view);
 		backpackModel.Draw(lightingShader);
 		
 		// rysowanie sfery
 		sphereShader.use();
-
 		setFog(sphereShader);
 		setLights(sphereShader);
-
 		projection = GetProjectionMatrix();
 		view = GetViewMatrix();
 		sphereShader.setMat4("projection", projection);
 		sphereShader.setMat4("view", view);
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(1.0f, 0.25f, 0.0f));
+		model = glm::translate(model, glm::vec3(2.0f, 0.25f, 0.0f));
 		model = glm::scale(model, glm::vec3(0.25f));
 		sphereShader.setMat4("model", model);
 		// materia³ br¹zu z tabelki
@@ -334,16 +389,13 @@ int main()
 		sphereShader.setVec3("material.diffuse", glm::vec3(0.714f, 0.4284f, 0.18144f));
 		sphereShader.setVec3("material.specular", glm::vec3(0.393548f, 0.271906f, 0.166721f));
 		sphereShader.setFloat("material.shininess", 25.6f);
-
 		glBindVertexArray(sphereVAO);
 		glDrawElements(GL_TRIANGLES, sphere.getIndexCount(), GL_UNSIGNED_INT, 0);
 
 		// rysowanie pod³o¿a
 		floorShader.use();
-
 		setLights(floorShader);
 		setFog(floorShader);
-
 		projection = GetProjectionMatrix();
 		view = GetViewMatrix();
 		floorShader.setMat4("projection", projection);
@@ -354,7 +406,6 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, groundAlbedoMap);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, groundRoughnessMap);
-
 		model = glm::mat4(1.0f);
 		floorShader.setMat4("model", model);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -365,7 +416,6 @@ int main()
 		view = glm::mat4(glm::mat3(GetViewMatrix()));
 		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", projection);
-
 		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, daySkyboxTexture);
@@ -537,6 +587,17 @@ void setLights(Shader shader)
 	shader.setVec3("dirLight.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
 	shader.setVec3("dirLight.diffuse", glm::vec3(0.4f, 0.4f, 0.4f));
 	shader.setVec3("dirLight.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+	// flashlight
+	shader.setVec3("flashlightPos[0]", flashlightPos);
+	shader.setVec3("flashlightDir[0]", flashlightDir);
+	shader.setFloat("flashlights[0].constant", 1.0f);
+	shader.setFloat("flashlights[0].linear", 0.035f);
+	shader.setFloat("flashlights[0].quadratic", 0.44f);
+	shader.setFloat("flashlights[0].cutOff", glm::cos(glm::radians(12.5f)));
+	shader.setVec3("flashlights[0].ambient", glm::vec3(0.1f, 0.1f, 0.1f));
+	shader.setVec3("flashlights[0].diffuse", glm::vec3(0.8f, 0.8f, 0.8f));
+	shader.setVec3("flashlights[0].specular", glm::vec3(1.0f, 1.0f, 1.0f));
+	shader.setFloat("flashlights[0].outerCutOff", glm::cos(glm::radians(17.5f)));
 }
 
 void setFog(Shader shader)
