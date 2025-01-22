@@ -13,6 +13,13 @@
 
 #include <iostream>
 
+enum CameraType
+{
+	STATIC,
+	TRACKING,
+	FREE
+};
+
 void init_glfw();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -22,16 +29,25 @@ unsigned int loadCubemap(std::string path);
 void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modes);
 void setLights(Shader shader);
 void setFog(Shader shader);
+void changeCameraType();
+glm::mat4 GetViewMatrix();
+glm::mat4 GetProjectionMatrix();
 
 // ustawienia ekranu
 const unsigned int SCR_WIDTH = 1200;
 const unsigned int SCR_HEIGHT = 800;
 
 // ustawienia kamery
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+CameraType activeCameraType = FREE;
+// free
+Camera freeCamera(glm::vec3(0.0f, 0.5f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+// static
+Camera staticCamera(3.0f, 3.5f, 3.0f, 0.0f, 0.0f, 0.0f);
+// tracking
+Camera trackingCamera(glm::vec3(0.0f, 3.0f, 4.0f));
 
 // ustawienia mg³y
 bool fogOn = false;
@@ -46,6 +62,12 @@ float lastFrame = 0.0f;
 // po³o¿enie oœwietlenia
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 glm::vec3 sunPos(0.2f, -1.0f, 0.3f);
+
+// poruszanie siê obiektu po okrêgu
+const float RADIUS = 3.0f;
+const float CIRCURAL_SPEED = 1.0f;
+const float Y_POSITION = 0.4f;
+float theta = 0.0f;
 
 int main()
 {
@@ -272,19 +294,25 @@ int main()
 		// render commands
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		// plecak
 		lightingShader.use();
 
 		setLights(lightingShader);
 		setFog(lightingShader);
 
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		glm::mat4 view = camera.GetViewMatrix();
-		lightingShader.setMat4("projection", projection);
-		lightingShader.setMat4("view", view);
+		// nowe po³o¿enie
+		theta += CIRCURAL_SPEED * deltaTime;
+		float new_x = RADIUS * cos(theta), new_z = RADIUS * sin(theta);
+		trackingCamera.UpdateTarget(glm::vec3(new_x, Y_POSITION, new_z));
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.4f, 0.0f));
+		model = glm::translate(model, glm::vec3(new_x, Y_POSITION, new_z));
+		model = glm::rotate(model, (-1) * atan2(new_z, new_x), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::scale(model, glm::vec3(0.2f));
 		lightingShader.setMat4("model", model);
+		glm::mat4 projection = GetProjectionMatrix();
+		glm::mat4 view = GetViewMatrix();
+		lightingShader.setMat4("projection", projection);
+		lightingShader.setMat4("view", view);
 		backpackModel.Draw(lightingShader);
 		
 		// rysowanie sfery
@@ -293,8 +321,8 @@ int main()
 		setFog(sphereShader);
 		setLights(sphereShader);
 
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		view = camera.GetViewMatrix();
+		projection = GetProjectionMatrix();
+		view = GetViewMatrix();
 		sphereShader.setMat4("projection", projection);
 		sphereShader.setMat4("view", view);
 		model = glm::mat4(1.0f);
@@ -316,8 +344,8 @@ int main()
 		setLights(floorShader);
 		setFog(floorShader);
 
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		view = camera.GetViewMatrix();
+		projection = GetProjectionMatrix();
+		view = GetViewMatrix();
 		floorShader.setMat4("projection", projection);
 		floorShader.setMat4("view", view);
 
@@ -334,7 +362,7 @@ int main()
 		// rysowanie skyboxa
 		glDepthFunc(GL_LEQUAL);
 		skyboxShader.use();
-		view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+		view = glm::mat4(glm::mat3(GetViewMatrix()));
 		skyboxShader.setMat4("view", view);
 		skyboxShader.setMat4("projection", projection);
 
@@ -368,40 +396,44 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow* window)
 {
-	bool fKeyPressed = false;
-
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.ProcessKeyboard(FORWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.ProcessKeyboard(BACKWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.ProcessKeyboard(LEFT, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.ProcessKeyboard(RIGHT, deltaTime);
+	if (activeCameraType == FREE)
+	{
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			freeCamera.ProcessKeyboard(FORWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			freeCamera.ProcessKeyboard(BACKWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			freeCamera.ProcessKeyboard(LEFT, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			freeCamera.ProcessKeyboard(RIGHT, deltaTime);
+	}
 }
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
-	float xpos = static_cast<float>(xposIn);
-	float ypos = static_cast<float>(yposIn);
-
-	if (firstMouse)
+	if (activeCameraType == FREE)
 	{
+		float xpos = static_cast<float>(xposIn);
+		float ypos = static_cast<float>(yposIn);
+
+		if (firstMouse)
+		{
+			lastX = xpos;
+			lastY = ypos;
+			firstMouse = false;
+		}
+
+		float xoffset = xpos - lastX;
+		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
 		lastX = xpos;
 		lastY = ypos;
-		firstMouse = false;
+
+		freeCamera.ProcessMouseMovement(xoffset, yoffset);
 	}
-
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-	lastX = xpos;
-	lastY = ypos;
-
-	camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 unsigned int loadTexture(char const* path)
@@ -486,6 +518,8 @@ void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, 
 {
 	if (key == GLFW_KEY_F && action == GLFW_PRESS)
 		fogOn = !fogOn;
+	if (key == GLFW_KEY_C && action == GLFW_PRESS)
+		changeCameraType();
 }
 
 void setLights(Shader shader)
@@ -511,4 +545,50 @@ void setFog(Shader shader)
 	shader.setFloat("fog.ExpDensity",fogExpDensity);
 	shader.setFloat("fog.End", fogEnd);
 	shader.setVec3("fog.Color", fogColor);
+}
+
+void changeCameraType()
+{
+	int aCTint = static_cast<int>(activeCameraType);
+	aCTint = (aCTint + 1) % 3;
+	activeCameraType = static_cast<CameraType>(aCTint);
+	firstMouse = true;
+}
+
+glm::mat4 GetViewMatrix()
+{
+	switch (activeCameraType)
+	{
+		case FREE:
+		{
+			return freeCamera.GetViewMatrix();
+		}
+		case STATIC:
+		{
+			return staticCamera.GetViewMatrix();
+		}
+		case TRACKING:
+		{
+			return trackingCamera.GetViewMatrix();
+		}
+	}
+}
+
+glm::mat4 GetProjectionMatrix()
+{
+	switch (activeCameraType)
+	{
+		case FREE:
+		{
+			return glm::perspective(glm::radians(freeCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		}
+		case STATIC:
+		{
+			return glm::perspective(glm::radians(staticCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		}
+		case TRACKING:
+		{
+			return glm::perspective(glm::radians(trackingCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		}
+	}
 }

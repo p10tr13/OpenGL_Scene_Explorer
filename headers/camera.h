@@ -20,6 +20,7 @@ const float PITCH = 0.0f;
 const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
+const float FPS_Y = 0.5f;
 
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
@@ -49,6 +50,7 @@ public:
         Pitch = pitch;
         updateCameraVectors();
     }
+
     // constructor with scalar values
     Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
     {
@@ -57,6 +59,14 @@ public:
         Yaw = yaw;
         Pitch = pitch;
         updateCameraVectors();
+    }
+
+    Camera(float posX, float posY, float posZ, float targX, float targY, float targZ): MovementSpeed(0), MouseSensitivity(0), Zoom(ZOOM), Yaw(YAW), Pitch(PITCH), WorldUp(glm::vec3(0.0f, 1.0f, 0.0f))
+    {
+        Position = glm::vec3(posX, posY, posZ);
+        Front = glm::normalize(glm::vec3(targX, targY, targZ) - Position);
+        Right = glm::normalize(glm::cross(Front, WorldUp));
+        Up = glm::normalize(glm::cross(Right, Front));
     }
 
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
@@ -77,6 +87,8 @@ public:
             Position -= Right * velocity;
         if (direction == RIGHT)
             Position += Right * velocity;
+
+        //Position.y = FPS_Y;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -109,6 +121,13 @@ public:
             Zoom = 1.0f;
         if (Zoom > 45.0f)
             Zoom = 45.0f;
+    }
+
+    void UpdateTarget(glm::vec3 target)
+    {
+        Front = glm::normalize(target - Position);
+        Right = glm::normalize(glm::cross(Front, WorldUp));
+        Up = glm::normalize(glm::cross(Right, Front));
     }
 
 private:
