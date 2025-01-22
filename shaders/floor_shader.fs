@@ -21,6 +21,14 @@ struct PointLight
     vec3 specular;
 };
 
+struct Fog
+{
+    bool IsOn;
+    float ExpDensity;
+    float End;
+    vec3 Color;
+};
+
 in vec3 FragPos;
 in vec3 Normal;
 in vec2 TextCoord;
@@ -31,11 +39,7 @@ uniform sampler2D albedoMap;
 uniform sampler2D roughnessMap;
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
-
-uniform bool FogOn;
-uniform float FogExpDensity = 1.0;
-uniform float FogEnd = -100.0;
-uniform vec3 FogColor = vec3(1.0, 1.0, 1.0);
+uniform Fog fog;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightDirection);
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos);
@@ -51,10 +55,10 @@ void main()
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         res += CalcPointLight(pointLights[i], norm, FragPos, viewDir, LightPos[i]);
 
-    if (FogOn)
+    if (fog.IsOn)
     {
         float FogFactor = CalcFogFactor();
-        res = vec3(mix(vec4(FogColor, 1.0), vec4(res, 1.0), FogFactor));
+        res = vec3(mix(vec4(fog.Color, 1.0), vec4(res, 1.0), FogFactor));
     }
 
     FragColor = vec4(res, 1.0);
@@ -92,6 +96,6 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 float CalcFogFactor()
 {
     float CameraToPixelDist = FragPos.z;
-    float DistRatio = 4.0 * CameraToPixelDist / FogEnd;
-    return exp(- DistRatio * FogExpDensity * DistRatio * FogExpDensity);
+    float DistRatio = 4.0 * CameraToPixelDist / fog.End;
+    return exp(- DistRatio * fog.ExpDensity * DistRatio * fog.ExpDensity);
 };

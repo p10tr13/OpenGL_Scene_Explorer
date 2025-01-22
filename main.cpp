@@ -5,10 +5,11 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-#include "stb_image.h"
-#include "shader.h"
-#include "camera.h"
-#include "model.h"
+#include "headers/stb_image.h"
+#include "headers/shader.h"
+#include "headers/camera.h"
+#include "headers/model.h"
+#include "headers/Sphere.h"
 
 #include <iostream>
 
@@ -20,10 +21,11 @@ unsigned int loadTexture(const char* path);
 unsigned int loadCubemap(std::string path);
 void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modes);
 void setLights(Shader shader);
+void setFog(Shader shader);
 
 // ustawienia ekranu
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1200;
+const unsigned int SCR_HEIGHT = 800;
 
 // ustawienia kamery
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -33,10 +35,9 @@ bool firstMouse = true;
 
 // ustawienia mg³y
 bool fogOn = false;
-float fogExpDensity = 1.0f;
-float fogStart = 1.0f;
-float fogEnd = -1.0f;
-glm::vec3 fogColor = glm::vec3(0.0f, 0.0f, 0.0f);
+float fogExpDensity = 2.0f;
+float fogEnd = -200.0f;
+glm::vec3 fogColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
 // Czas, aby poruszanie kamery nie zale¿a³o od szybkoœci wykonywania pêtli render loop
 float deltaTime = 0.0f;
@@ -194,28 +195,27 @@ int main()
 		1, 2, 3
 	};
 
-	Shader lightingShader("shader.vs", "shader.fs");
-	Shader lightCubeShader("light_cube_shader.vs", "light_cube_shader.fs");
-	Shader skyboxShader("skybox_shader.vs", "skybox_shader.fs");
-	Shader floorShader("floor_shader.vs", "floor_shader.fs");
+	Shader lightingShader("shaders/shader.vs", "shaders/shader.fs");
+	Shader lightCubeShader("shaders/light_cube_shader.vs", "shaders/light_cube_shader.fs");
+	Shader skyboxShader("shaders/skybox_shader.vs", "shaders/skybox_shader.fs");
+	Shader floorShader("shaders/floor_shader.vs", "shaders/floor_shader.fs");
+	Shader sphereShader("shaders/sphere_shader.vs", "shaders/sphere_shader.fs");
 
 	Model backpackModel("resources/backpack/backpack.obj");
+	Sphere sphere;
 
 	// floor VAO
 	unsigned int floorVAO, floorVBO;
 	glGenVertexArrays(1, &floorVAO);
 	glGenBuffers(1, &floorVBO);
 	glBindVertexArray(floorVAO);
-
 	glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
-
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
@@ -230,6 +230,27 @@ int main()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glBindVertexArray(0);
+
+	// sphere VAO
+	unsigned int sphereVAO, sphereVBO, sphereEBO;
+	glGenVertexArrays(1, &sphereVAO);
+	glBindVertexArray(sphereVAO);
+	glGenBuffers(1, &sphereVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, sphereVBO);
+	glBufferData(GL_ARRAY_BUFFER, sphere.getInterleavedVertexSize(), sphere.getInterleavedVertices(), GL_STATIC_DRAW);
+	glGenBuffers(1, &sphereEBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sphereEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphere.getIndexSize(), sphere.getIndices(), GL_STATIC_DRAW);
+
+	int sphereDataStride = sphere.getInterleavedStride();
+	glVertexAttribPointer(0, 3, GL_FLOAT, false, sphereDataStride, (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, false, sphereDataStride, (void*)(sizeof(float) * 3));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, false, sphereDataStride, (void*)(sizeof(float) * 6));
+	glEnableVertexAttribArray(2);
+	glBindVertexArray(0);
 
 	floorShader.use();
 	floorShader.setInt("albedoMap", 0);
@@ -253,22 +274,48 @@ int main()
 
 		lightingShader.use();
 
+		setLights(lightingShader);
+		setFog(lightingShader);
+
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		lightingShader.setMat4("projection", projection);
 		lightingShader.setMat4("view", view);
-
-		setLights(lightingShader);
-
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(0.0f, 0.4f, 0.0f));
 		model = glm::scale(model, glm::vec3(0.2f));
 		lightingShader.setMat4("model", model);
-		lightingShader.setBool("FogOn", fogOn);
 		backpackModel.Draw(lightingShader);
+		
+		// rysowanie sfery
+		sphereShader.use();
+
+		setFog(sphereShader);
+		setLights(sphereShader);
+
+		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		view = camera.GetViewMatrix();
+		sphereShader.setMat4("projection", projection);
+		sphereShader.setMat4("view", view);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(1.0f, 0.25f, 0.0f));
+		model = glm::scale(model, glm::vec3(0.25f));
+		sphereShader.setMat4("model", model);
+		// materia³ br¹zu z tabelki
+		sphereShader.setVec3("material.ambient", glm::vec3(0.2125f, 0.1275f, 0.054f));
+		sphereShader.setVec3("material.diffuse", glm::vec3(0.714f, 0.4284f, 0.18144f));
+		sphereShader.setVec3("material.specular", glm::vec3(0.393548f, 0.271906f, 0.166721f));
+		sphereShader.setFloat("material.shininess", 25.6f);
+
+		glBindVertexArray(sphereVAO);
+		glDrawElements(GL_TRIANGLES, sphere.getIndexCount(), GL_UNSIGNED_INT, 0);
 
 		// rysowanie pod³o¿a
 		floorShader.use();
+
+		setLights(floorShader);
+		setFog(floorShader);
+
 		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		view = camera.GetViewMatrix();
 		floorShader.setMat4("projection", projection);
@@ -280,10 +327,8 @@ int main()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, groundRoughnessMap);
 
-		setLights(floorShader);
 		model = glm::mat4(1.0f);
 		floorShader.setMat4("model", model);
-		floorShader.setBool("FogOn", fogOn);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// rysowanie skyboxa
@@ -458,4 +503,12 @@ void setLights(Shader shader)
 	shader.setVec3("dirLight.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
 	shader.setVec3("dirLight.diffuse", glm::vec3(0.4f, 0.4f, 0.4f));
 	shader.setVec3("dirLight.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+}
+
+void setFog(Shader shader)
+{
+	shader.setBool("fog.IsOn", fogOn);
+	shader.setFloat("fog.ExpDensity",fogExpDensity);
+	shader.setFloat("fog.End", fogEnd);
+	shader.setVec3("fog.Color", fogColor);
 }
