@@ -1,4 +1,4 @@
-#version 330 core
+#version 400 core
 #define NR_POINT_LIGHTS 1
 #define NR_FLASHLIGHTS 1
 

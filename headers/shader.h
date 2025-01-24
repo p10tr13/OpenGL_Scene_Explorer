@@ -20,6 +20,7 @@ public:
 	unsigned int ID;
 
 	Shader(const char* vertexPath, const char* fragmentPath);
+	Shader(const char* vertexPath, const char* fragmentPath, const char* tcsPath, const char* tesPath);
 
 	void use();
 

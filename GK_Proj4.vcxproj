@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="flag.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
@@ -141,6 +142,7 @@
   <ItemGroup>
     <ClInclude Include="glm\glm.hpp" />
     <ClInclude Include="headers\camera.h" />
+    <ClInclude Include="headers\flag.h" />
     <ClInclude Include="headers\mesh.h" />
     <ClInclude Include="headers\model.h" />
     <ClInclude Include="headers\shader.h" />
@@ -150,6 +152,10 @@
   <ItemGroup>
     <None Include="shaders\container_shader.fs" />
     <None Include="shaders\container_shader.vs" />
+    <None Include="shaders\flag_shader.fs" />
+    <None Include="shaders\flag_shader.tcs" />
+    <None Include="shaders\flag_shader.tes" />
+    <None Include="shaders\flag_shader.vs" />
     <None Include="shaders\floor_shader.fs" />
     <None Include="shaders\floor_shader.vs" />
     <None Include="shaders\light_cube_shader.fs" />

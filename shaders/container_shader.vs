@@ -1,4 +1,4 @@
-#version 330 core
+#version 400 core
 #define NR_POINT_LIGHTS 1
 
 layout (location = 0) in vec3 aPos;

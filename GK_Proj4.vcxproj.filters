@@ -30,6 +30,9 @@
     <ClCompile Include="Sphere.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
+    <ClCompile Include="flag.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glm\glm.hpp">
@@ -51,6 +54,9 @@
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
     <ClInclude Include="headers\Sphere.h">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\flag.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
   </ItemGroup>
@@ -89,6 +95,18 @@
       <Filter>Pliki zasobów</Filter>
     </None>
     <None Include="shaders\sphere_shader.vs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="shaders\flag_shader.tcs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="shaders\flag_shader.tes">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="shaders\flag_shader.vs">
+      <Filter>Pliki zasobów</Filter>
+    </None>
+    <None Include="shaders\flag_shader.fs">
       <Filter>Pliki zasobów</Filter>
     </None>
   </ItemGroup>

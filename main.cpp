@@ -60,7 +60,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // po³o¿enie oœwietlenia
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(1.2f, 1.0f, -3.0f);
 glm::vec3 sunPos(0.2f, -1.0f, 0.3f);
 glm::vec3 flashlightPos(0.0f, 0.0f, 0.0f);
 glm::vec3 flashlightStartDir(0.0f, 0.0f, -1.0f);
@@ -71,6 +71,11 @@ const float RADIUS = 0.5f;
 const float CIRCURAL_SPEED = 1.0f;
 const float Y_POSITION = 0.25f;
 float theta = 0.0f;
+
+// animacja flagi
+const float windFrequency = 2.0f;
+const float windApmlitude = 0.25f;
+float windTimeElapsed = 0.0f;
 
 int main()
 {
@@ -217,6 +222,25 @@ int main()
 	-10.0f, 0.0f,  10.0f,  0.0f,  1.0f, 0.0f,  0.0f,  10.0f,
 	};
 
+	float flagControlPoints[] = {
+		0.0f, 0.0f, 0.0f,
+		0.0f, 0.33f, 0.0f,
+		0.0f, 0.66f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.53f, 0.0f, 0.0f,
+		0.53f, 0.33f, 0.0f,
+		0.53f, 0.66f, 0.0f,
+		0.53f, 1.0f, 0.0f,
+		1.06f, 0.0f, 0.0f,
+		1.06f, 0.33f, 0.0f,
+		1.06f, 0.66f, 0.0f,
+		1.06f, 1.0f, 0.0f,
+		1.6f, 0.0f, 0.0f,
+		1.6f, 0.33f, 0.0f,
+		1.6f, 0.66f, 0.0f,
+		1.6f, 1.0f, 0.0f
+	};
+
 	unsigned int boxIndices[] = {
 		0, 1, 3,
 		1, 2, 3
@@ -228,6 +252,7 @@ int main()
 	Shader floorShader("shaders/floor_shader.vs", "shaders/floor_shader.fs");
 	Shader sphereShader("shaders/sphere_shader.vs", "shaders/sphere_shader.fs");
 	Shader containerShader("shaders/container_shader.vs", "shaders/container_shader.fs");
+	Shader flagShader("shaders/flag_shader.vs", "shaders/flag_shader.fs", "shaders/flag_shader.tcs", "shaders/flag_shader.tes");
 
 	Model backpackModel("resources/backpack/backpack.obj");
 	Sphere sphere;
@@ -256,6 +281,16 @@ int main()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(boxVertices), boxVertices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// flag VAO
+	unsigned int flagVAO, flagVBO;
+	glGenVertexArrays(1, &flagVAO);
+	glGenBuffers(1, &flagVBO);
+	glBindVertexArray(flagVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, flagVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(flagControlPoints), flagControlPoints, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	// floor VAO
@@ -323,6 +358,7 @@ int main()
 		float currentFrame = static_cast<float>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+		windTimeElapsed += deltaTime;
 
 		// update kamery œledz¹cej poruszaj¹cy siê obiekt
 		theta += CIRCURAL_SPEED * deltaTime;
@@ -392,6 +428,40 @@ int main()
 		glBindVertexArray(sphereVAO);
 		glDrawElements(GL_TRIANGLES, sphere.getIndexCount(), GL_UNSIGNED_INT, 0);
 
+		// flaga
+		flagShader.use();
+		setFog(flagShader);
+		setLights(flagShader);
+		projection = GetProjectionMatrix();
+		view = GetViewMatrix();
+		flagShader.setMat4("projection", projection);
+		flagShader.setMat4("view", view);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.0f));
+		model = glm::scale(model, glm::vec3(0.8f));
+		flagShader.setMat4("model", model);
+		// material
+		flagShader.setVec3("material.ambient", glm::vec3(0.2125f, 0.1275f, 0.054f));
+		flagShader.setVec3("material.diffuse", glm::vec3(0.714f, 0.4284f, 0.18144f));
+		flagShader.setVec3("material.specular", glm::vec3(0.393548f, 0.271906f, 0.166721f));
+		flagShader.setFloat("material.shininess", 25.6f);
+		// update controlPoints
+		for (int i = 1; i < 4; i++)
+		{
+			float diff = 2.0f * i;
+			for (int j = 0; j < 4; j++)
+			{
+				flagControlPoints[(i * 4 + j) * 3 + 2] = sin(windFrequency * windTimeElapsed + diff) * windApmlitude;
+				if (j != 0)
+					flagControlPoints[(i + 4 * j) * 3 + 2] = cos(windFrequency * windTimeElapsed + (diff - 0.3f)) * windApmlitude;
+			}
+		}
+
+		glUniform3fv(glGetUniformLocation(flagShader.ID, "controlPoints"), 16, (float*)flagControlPoints);
+		glBindVertexArray(flagVAO);
+		glPatchParameteri(GL_PATCH_VERTICES, 16);
+		glDrawArrays(GL_PATCHES, 0, 16);
+
 		// rysowanie pod³o¿a
 		floorShader.use();
 		setLights(floorShader);
@@ -434,8 +504,8 @@ int main()
 void init_glfw()
 {
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 }
 
