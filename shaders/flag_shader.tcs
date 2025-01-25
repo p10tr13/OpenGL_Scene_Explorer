@@ -2,9 +2,22 @@
 
 layout(vertices = 16) out;
 
-void main() {
+struct Wind
+{
+    float amp;
+    float freq;
+    float speed;
+};
 
-    gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+uniform Wind wind;
+uniform float time;
+
+vec3 applyWind(Wind wind, vec3 pos, float time);
+
+void main() {
+    vec3 originalPos = gl_in[gl_InvocationID].gl_Position.xyz;
+    vec3 changedPos = applyWind(wind, originalPos, time);
+    gl_out[gl_InvocationID].gl_Position = vec4(changedPos, 1.0);
 
     if (gl_InvocationID == 0) {
         gl_TessLevelOuter[0] = 8;
@@ -14,4 +27,12 @@ void main() {
         gl_TessLevelInner[0] = 8;
         gl_TessLevelInner[1] = 8;
     }
+};
+
+vec3 applyWind(Wind wind, vec3 pos, float time)
+{
+    if (pos.x == 0)
+        return pos;
+    float change = sin(pos.x * wind.freq + time * wind.speed) * cos(pos.y * wind.freq + time * wind.speed);
+    return vec3(pos.x, pos.y, pos.z + change * wind.amp);
 }

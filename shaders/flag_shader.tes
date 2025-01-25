@@ -15,8 +15,6 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform vec3 controlPoints[16];
-
 uniform vec3 lightPos[NR_POINT_LIGHTS];
 uniform vec3 dirLightDirection;
 uniform vec3 flashlightPos[NR_FLASHLIGHTS];
@@ -44,18 +42,18 @@ void main()
             float Bi = BernsteinPolynomial(n, i, u);
             float Bj = BernsteinPolynomial(m, j, v);
 
-            position += controlPoints[j + 4 * i] * Bi * Bj;
+            position += gl_in[j + 4 * i].gl_Position.xyz * Bi * Bj;
 
             if (i != n)
             {
                 float Bim1 = BernsteinPolynomial(n - 1, i, u);
-                tangentU += (controlPoints[(i + 1) * 4 + j] - controlPoints[j + 4 * i]) * Bim1 * Bj;
+                tangentU += (gl_in[(i + 1) * 4 + j].gl_Position.xyz - gl_in[j + 4 * i].gl_Position.xyz) * Bim1 * Bj;
             }
 
             if (j != m)
             {
                 float Bjm1 = BernsteinPolynomial(m - 1, j, v);
-                tangentV += (controlPoints[i * 4 + j + 1] - controlPoints[j + 4 * i]) * Bjm1 * Bi;
+                tangentV += (gl_in[i * 4 + j + 1].gl_Position.xyz - gl_in[j + 4 * i].gl_Position.xyz) * Bjm1 * Bi;
             }
         }
     }
