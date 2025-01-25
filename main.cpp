@@ -24,7 +24,8 @@ enum PropertyModifyType
 {
 	SPHERE,
 	FLAG,
-	SPOTLIGHT
+	SPOTLIGHT,
+	WIND
 };
 
 enum TimeOfDay
@@ -89,9 +90,9 @@ const float Y_POSITION = 0.25f;
 float theta = 0.0f;
 
 // animacja flagi
-const float windFreq = 2.0f;
+float windFreq = 2.0f;
 const float windAmp = 0.4f;
-const float windSpeed = 1.0f;
+float windSpeed = 1.0f;
 
 // w³aœciwoœci sfery
 float sphereSpecular = 0.5f;
@@ -106,6 +107,8 @@ PropertyModifyType activeModifyType = SPHERE;
 float specularChangeSpeed = 0.2f;
 float shininessChangeSpeed = 16.0f;
 float spotlightDirChangeSpeed = 0.4f;
+float windFreqChangeSpeed = 0.2f;
+float windSpeedChangeSpeed = 0.2f;
 
 // pora dnia
 TimeOfDay timeOfDay = DAY;
@@ -134,6 +137,7 @@ int main()
 
 	glfwSetKeyCallback(window, settingsKeyCallback);
 
+	// Textures
 	unsigned int daySkyboxTexture = loadCubemap("resources/skyboxes/day/");
 	unsigned int nightSkyBoxTexture = loadCubemap("resources/skyboxes/night/");
 	unsigned int groundAlbedoMap = loadTexture("resources/ground/Ground037_4K-JPG_Color.jpg");
@@ -280,6 +284,7 @@ int main()
 		1, 2, 3
 	};
 
+	// Shaders
 	Shader lightingShader("shaders/shader.vs", "shaders/shader.fs");
 	Shader lightCubeShader("shaders/light_cube_shader.vs", "shaders/light_cube_shader.fs");
 	Shader skyboxShader("shaders/skybox_shader.vs", "shaders/skybox_shader.fs");
@@ -288,6 +293,7 @@ int main()
 	Shader containerShader("shaders/container_shader.vs", "shaders/container_shader.fs");
 	Shader flagShader("shaders/flag_shader.vs", "shaders/flag_shader.fs", "shaders/flag_shader.tcs", "shaders/flag_shader.tes");
 
+	//Objects
 	Model backpackModel("resources/backpack/backpack.obj");
 	Sphere sphere;
 
@@ -342,8 +348,6 @@ int main()
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	glBindVertexArray(0);
-
 	// skybox VAO
 	unsigned int skyboxVAO, skyboxVBO;
 	glGenVertexArrays(1, &skyboxVAO);
@@ -353,7 +357,6 @@ int main()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glBindVertexArray(0);
 
 	// sphere VAO
 	unsigned int sphereVAO, sphereVBO, sphereEBO;
@@ -373,6 +376,7 @@ int main()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(2, 2, GL_FLOAT, false, sphereDataStride, (void*)(sizeof(float) * 6));
 	glEnableVertexAttribArray(2);
+
 	glBindVertexArray(0);
 
 	floorShader.use();
@@ -489,7 +493,7 @@ int main()
 		glPatchParameteri(GL_PATCH_VERTICES, 16);
 		glDrawArrays(GL_PATCHES, 0, 16);
 
-		// rysowanie pod³o¿a
+		// pod³o¿e
 		floorShader.use();
 		setLights(floorShader);
 		setFog(floorShader);
@@ -507,7 +511,7 @@ int main()
 		floorShader.setMat4("model", model);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
-		// rysowanie skyboxa
+		// skybox
 		glDepthFunc(GL_LEQUAL);
 		skyboxShader.use();
 		view = glm::mat4(glm::mat3(GetViewMatrix()));
@@ -593,6 +597,12 @@ void processInput(GLFWwindow* window)
 			flashlightStartDir.x = clamp(flashlightStartDir.x, -1.0f, 1.0f);
 			break;
 		}
+		case WIND:
+		{
+			windSpeed += windSpeedChangeSpeed * deltaTime;
+			windSpeed = clamp(windSpeed, 0.1f, 10.0f);
+			break;
+		}
 		}
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
@@ -615,6 +625,12 @@ void processInput(GLFWwindow* window)
 		{
 			flashlightStartDir.x += spotlightDirChangeSpeed * deltaTime * flashlightStartDir.z;
 			flashlightStartDir.x = clamp(flashlightStartDir.x, -1.0f, 1.0f);
+			break;
+		}
+		case WIND:
+		{
+			windSpeed -= windSpeedChangeSpeed * deltaTime;
+			windSpeed = clamp(windSpeed, 0.1f, 10.0f);
 			break;
 		}
 		}
@@ -641,6 +657,12 @@ void processInput(GLFWwindow* window)
 			flashlightStartDir.y = clamp(flashlightStartDir.y, -1.0f, 1.0f);
 			break;
 		}
+		case WIND:
+		{
+			windFreq += windFreqChangeSpeed * deltaTime;
+			windFreq = clamp(windFreq, 0.1f, 4.0f);
+			break;
+		}
 		}
 	}
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -663,6 +685,12 @@ void processInput(GLFWwindow* window)
 		{
 			flashlightStartDir.y -= spotlightDirChangeSpeed * deltaTime;
 			flashlightStartDir.y = clamp(flashlightStartDir.y, -1.0f, 1.0f);
+			break;
+		}
+		case WIND:
+		{
+			windFreq -= windFreqChangeSpeed * deltaTime;
+			windFreq = clamp(windFreq, 0.1f, 4.0f);
 			break;
 		}
 		}
@@ -851,7 +879,7 @@ void changeCameraType()
 void changeModifyType()
 {
 	int aMTint = static_cast<int>(activeModifyType);
-	aMTint = (aMTint + 1) % 3;
+	aMTint = (aMTint + 1) % 4;
 	activeModifyType = static_cast<PropertyModifyType>(aMTint);
 }
 
