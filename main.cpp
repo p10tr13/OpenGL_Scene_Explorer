@@ -20,6 +20,12 @@ enum CameraType
 	FREE
 };
 
+enum PropertyModifyType
+{
+	SPHERE,
+	FLAG
+};
+
 void init_glfw();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -30,8 +36,10 @@ void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, 
 void setLights(Shader shader);
 void setFog(Shader shader);
 void changeCameraType();
+void changeModifyType();
 glm::mat4 GetViewMatrix();
 glm::mat4 GetProjectionMatrix();
+float clamp(float n, float lower, float upper);
 
 // ustawienia ekranu
 const unsigned int SCR_WIDTH = 1200;
@@ -75,7 +83,20 @@ float theta = 0.0f;
 // animacja flagi
 const float windFreq = 2.0f;
 const float windAmp = 0.4f;
-float windSpeed= 1.0f;
+const float windSpeed = 1.0f;
+
+// w³aœciwoœci sfery
+float sphereSpecular = 0.5f;
+float sphereShininess = 32.0f;
+
+// w³aœciwoœci flagi
+float flagSpecular = 0.5f;
+float flagShininess = 32.0f;
+
+// ustawienia zmiany w³aœciwoœci obeiktów
+PropertyModifyType activeModifyType = SPHERE;
+float specularChangeSpeed = 0.2f;
+float shininessChangeSpeed = 16.0f;
 
 int main()
 {
@@ -108,7 +129,7 @@ int main()
 	unsigned int boxSpecularMap = loadTexture("resources/container/container2_specular.png");
 
 	float skyboxVertices[] = {
-        
+
 		-1.0f,  1.0f, -1.0f,
 		-1.0f, -1.0f, -1.0f,
 		 1.0f, -1.0f, -1.0f,
@@ -406,7 +427,7 @@ int main()
 		lightingShader.setMat4("projection", projection);
 		lightingShader.setMat4("view", view);
 		backpackModel.Draw(lightingShader);
-		
+
 		// rysowanie sfery
 		sphereShader.use();
 		setFog(sphereShader);
@@ -418,12 +439,12 @@ int main()
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(2.0f, 0.25f, 0.0f));
 		model = glm::scale(model, glm::vec3(0.25f));
-		sphereShader.setMat4("model", model);
-		// materia³ br¹zu z tabelki
-		sphereShader.setVec3("material.ambient", glm::vec3(0.2125f, 0.1275f, 0.054f));
-		sphereShader.setVec3("material.diffuse", glm::vec3(0.714f, 0.4284f, 0.18144f));
-		sphereShader.setVec3("material.specular", glm::vec3(0.393548f, 0.271906f, 0.166721f));
-		sphereShader.setFloat("material.shininess", 25.6f);
+		sphereShader.setMat4("model", model);;
+		sphereShader.setFloat("material.ambient", 0.1f);
+		sphereShader.setFloat("material.specular", sphereSpecular);
+		sphereShader.setFloat("material.diffuse", 0.6f);
+		sphereShader.setFloat("material.shininess", sphereShininess);
+		sphereShader.setVec3("material.Color", glm::vec3(0.5f, 1.0f, 0.0f));
 		glBindVertexArray(sphereVAO);
 		glDrawElements(GL_TRIANGLES, sphere.getIndexCount(), GL_UNSIGNED_INT, 0);
 
@@ -440,10 +461,11 @@ int main()
 		model = glm::scale(model, glm::vec3(0.8f));
 		flagShader.setMat4("model", model);
 		// material
-		flagShader.setVec3("material.ambient", glm::vec3(0.1745f, 0.01175f, 0.01175f));
-		flagShader.setVec3("material.diffuse", glm::vec3(0.61424f, 0.04136f, 0.04136f));
-		flagShader.setVec3("material.specular", glm::vec3(0.727811f, 0.626959f, 0.626959f));
-		flagShader.setFloat("material.shininess", 76.8f);
+		flagShader.setFloat("material.ambient", 0.1f);
+		flagShader.setFloat("material.specular", flagSpecular);
+		flagShader.setFloat("material.diffuse", 0.6f);
+		flagShader.setFloat("material.shininess", flagShininess);
+		flagShader.setVec3("material.Color", glm::vec3(1.0f, 0.0f, 0.0f));
 		// wind
 		flagShader.setFloat("wind.speed", windSpeed);
 		flagShader.setFloat("wind.amp", windAmp);
@@ -522,6 +544,80 @@ void processInput(GLFWwindow* window)
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			freeCamera.ProcessKeyboard(RIGHT, deltaTime);
 	}
+
+	// Zamiana sk³adowej cieniowania Phonga
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		switch (activeModifyType)
+		{
+		case SPHERE:
+		{
+			sphereSpecular += specularChangeSpeed * deltaTime;
+			sphereSpecular = clamp(sphereSpecular, 0.0f, 1.0f);
+			break;
+		}
+		case FLAG:
+		{
+			flagSpecular += specularChangeSpeed * deltaTime;
+			flagSpecular = clamp(flagSpecular, 0.0f, 1.0f);
+			break;
+		}
+		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		switch (activeModifyType)
+		{
+		case SPHERE:
+		{
+			sphereSpecular -= specularChangeSpeed * deltaTime;
+			sphereSpecular = clamp(sphereSpecular, 0.0f, 1.0f);
+			break;
+		}
+		case FLAG:
+		{
+			flagSpecular -= specularChangeSpeed * deltaTime;
+			flagSpecular = clamp(flagSpecular, 0.0f, 1.0f);
+			break;
+		}
+		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	{
+		switch (activeModifyType)
+		{
+		case SPHERE:
+		{
+			sphereShininess += shininessChangeSpeed * deltaTime;
+			sphereShininess = clamp(sphereShininess, 1.0f, 128.0f);
+			break;
+		}
+		case FLAG:
+		{
+			flagShininess += shininessChangeSpeed * deltaTime;
+			flagShininess = clamp(flagShininess, 1.0f, 128.0f);
+			break;
+		}
+		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		switch (activeModifyType)
+		{
+		case SPHERE:
+		{
+			sphereShininess -= shininessChangeSpeed * deltaTime;
+			sphereShininess = clamp(sphereShininess, 1.0f, 128.0f);
+			break;
+		}
+		case FLAG:
+		{
+			flagShininess -= shininessChangeSpeed * deltaTime;
+			flagShininess = clamp(flagShininess, 1.0f, 128.0f);
+			break;
+		}
+		}
+	}
 }
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
@@ -591,7 +687,7 @@ unsigned int loadCubemap(std::string path)
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-	vector<std::string> faces {
+	vector<std::string> faces{
 		"right.jpg",
 			"left.jpg",
 			"top.jpg",
@@ -632,6 +728,8 @@ void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, 
 		fogOn = !fogOn;
 	if (key == GLFW_KEY_C && action == GLFW_PRESS)
 		changeCameraType();
+	if (key == GLFW_KEY_M && action == GLFW_PRESS)
+		changeModifyType();
 }
 
 void setLights(Shader shader)
@@ -665,7 +763,7 @@ void setLights(Shader shader)
 void setFog(Shader shader)
 {
 	shader.setBool("fog.IsOn", fogOn);
-	shader.setFloat("fog.ExpDensity",fogExpDensity);
+	shader.setFloat("fog.ExpDensity", fogExpDensity);
 	shader.setFloat("fog.End", fogEnd);
 	shader.setVec3("fog.Color", fogColor);
 }
@@ -678,22 +776,29 @@ void changeCameraType()
 	firstMouse = true;
 }
 
+void changeModifyType()
+{
+	int aMTint = static_cast<int>(activeModifyType);
+	aMTint = (aMTint + 1) % 2;
+	activeModifyType = static_cast<PropertyModifyType>(aMTint);
+}
+
 glm::mat4 GetViewMatrix()
 {
 	switch (activeCameraType)
 	{
-		case FREE:
-		{
-			return freeCamera.GetViewMatrix();
-		}
-		case STATIC:
-		{
-			return staticCamera.GetViewMatrix();
-		}
-		case TRACKING:
-		{
-			return trackingCamera.GetViewMatrix();
-		}
+	case FREE:
+	{
+		return freeCamera.GetViewMatrix();
+	}
+	case STATIC:
+	{
+		return staticCamera.GetViewMatrix();
+	}
+	case TRACKING:
+	{
+		return trackingCamera.GetViewMatrix();
+	}
 	}
 }
 
@@ -701,17 +806,22 @@ glm::mat4 GetProjectionMatrix()
 {
 	switch (activeCameraType)
 	{
-		case FREE:
-		{
-			return glm::perspective(glm::radians(freeCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		}
-		case STATIC:
-		{
-			return glm::perspective(glm::radians(staticCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		}
-		case TRACKING:
-		{
-			return glm::perspective(glm::radians(trackingCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		}
+	case FREE:
+	{
+		return glm::perspective(glm::radians(freeCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 	}
+	case STATIC:
+	{
+		return glm::perspective(glm::radians(staticCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+	}
+	case TRACKING:
+	{
+		return glm::perspective(glm::radians(trackingCamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+	}
+	}
+}
+
+float clamp(float n, float lower, float upper)
+{
+	return max(lower, min(n, upper));
 }

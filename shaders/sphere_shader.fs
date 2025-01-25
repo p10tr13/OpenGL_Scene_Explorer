@@ -6,10 +6,11 @@ out vec4 FragColor;
 
 struct Material
 {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;   
+    float ambient;
+    float diffuse;
+    float specular;   
     float shininess;
+    vec3 Color;
 };
 
 struct DirLight
@@ -83,6 +84,8 @@ void main()
     for(int i = 0; i < NR_FLASHLIGHTS; i++)
 		res += CalcFlashlight(flashlights[i], norm, FragPos, viewDir, FlashlightPos[i], FlashlightDir[i]);
 
+    res *= material.Color;
+
     if (fog.IsOn)
     {
         float FogFactor = CalcFogFactor();
@@ -97,7 +100,7 @@ float CalcFogFactor()
     float CameraToPixelDist = FragPos.z;
     float DistRatio = 4.0 * CameraToPixelDist / fog.End;
     return exp(- DistRatio * fog.ExpDensity * DistRatio * fog.ExpDensity);
-}
+};
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightDirection)
 {
