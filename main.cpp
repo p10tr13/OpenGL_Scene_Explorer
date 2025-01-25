@@ -23,7 +23,8 @@ enum CameraType
 enum PropertyModifyType
 {
 	SPHERE,
-	FLAG
+	FLAG,
+	SPOTLIGHT
 };
 
 enum TimeOfDay
@@ -78,7 +79,7 @@ float lastFrame = 0.0f;
 glm::vec3 lightPos(1.2f, 1.0f, 3.0f);
 glm::vec3 sunPos(0.2f, -1.0f, 0.3f);
 glm::vec3 flashlightPos(0.0f, 0.0f, 0.0f);
-glm::vec3 flashlightStartDir(0.0f, 0.0f, -1.0f);
+glm::vec3 flashlightStartDir(0.0f, 0.0f, 1.0f);
 glm::vec3 flashlightDir(0.0f, 0.0f, 0.0f);
 
 // poruszanie siê obiektu po okrêgu
@@ -104,6 +105,7 @@ float flagShininess = 32.0f;
 PropertyModifyType activeModifyType = SPHERE;
 float specularChangeSpeed = 0.2f;
 float shininessChangeSpeed = 16.0f;
+float spotlightDirChangeSpeed = 0.4f;
 
 // pora dnia
 TimeOfDay timeOfDay = DAY;
@@ -408,7 +410,7 @@ int main()
 		model = glm::translate(model, glm::vec3(new_x, Y_POSITION, new_z));
 		model = glm::rotate(model, (-1) * atan2(new_z, new_x), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::scale(model, glm::vec3(0.5f));
-		flashlightDir = glm::vec3(model * glm::vec4(flashlightStartDir, 0.0f));
+		flashlightDir = glm::vec3(model * glm::vec4(glm::normalize(flashlightStartDir), 0.0f));
 		flashlightPos = glm::vec3(new_x, Y_POSITION, new_z);
 		setLights(containerShader);
 		setFog(containerShader);
@@ -569,7 +571,6 @@ void processInput(GLFWwindow* window)
 			freeCamera.ProcessKeyboard(RIGHT, deltaTime);
 	}
 
-	// Zamiana sk³adowej cieniowania Phonga
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
 		switch (activeModifyType)
@@ -584,6 +585,12 @@ void processInput(GLFWwindow* window)
 		{
 			flagSpecular += specularChangeSpeed * deltaTime;
 			flagSpecular = clamp(flagSpecular, 0.0f, 1.0f);
+			break;
+		}
+		case SPOTLIGHT:
+		{
+			flashlightStartDir.x -= spotlightDirChangeSpeed * deltaTime * flashlightStartDir.z;
+			flashlightStartDir.x = clamp(flashlightStartDir.x, -1.0f, 1.0f);
 			break;
 		}
 		}
@@ -604,6 +611,12 @@ void processInput(GLFWwindow* window)
 			flagSpecular = clamp(flagSpecular, 0.0f, 1.0f);
 			break;
 		}
+		case SPOTLIGHT:
+		{
+			flashlightStartDir.x += spotlightDirChangeSpeed * deltaTime * flashlightStartDir.z;
+			flashlightStartDir.x = clamp(flashlightStartDir.x, -1.0f, 1.0f);
+			break;
+		}
 		}
 	}
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
@@ -622,6 +635,12 @@ void processInput(GLFWwindow* window)
 			flagShininess = clamp(flagShininess, 1.0f, 128.0f);
 			break;
 		}
+		case SPOTLIGHT:
+		{
+			flashlightStartDir.y += spotlightDirChangeSpeed * deltaTime;
+			flashlightStartDir.y = clamp(flashlightStartDir.y, -1.0f, 1.0f);
+			break;
+		}
 		}
 	}
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -638,6 +657,12 @@ void processInput(GLFWwindow* window)
 		{
 			flagShininess -= shininessChangeSpeed * deltaTime;
 			flagShininess = clamp(flagShininess, 1.0f, 128.0f);
+			break;
+		}
+		case SPOTLIGHT:
+		{
+			flashlightStartDir.y -= spotlightDirChangeSpeed * deltaTime;
+			flashlightStartDir.y = clamp(flashlightStartDir.y, -1.0f, 1.0f);
 			break;
 		}
 		}
@@ -756,6 +781,12 @@ void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, 
 		changeModifyType();
 	if (key == GLFW_KEY_P && action == GLFW_PRESS)
 		changeTimeOfDay();
+	if (activeModifyType == SPOTLIGHT && key == GLFW_KEY_N && action == GLFW_PRESS)
+	{
+		flashlightStartDir.z *= -1;
+		flashlightStartDir.x *= -1;
+	}
+		
 }
 
 void setLights(Shader shader)
@@ -820,7 +851,7 @@ void changeCameraType()
 void changeModifyType()
 {
 	int aMTint = static_cast<int>(activeModifyType);
-	aMTint = (aMTint + 1) % 2;
+	aMTint = (aMTint + 1) % 3;
 	activeModifyType = static_cast<PropertyModifyType>(aMTint);
 }
 
