@@ -26,6 +26,12 @@ enum PropertyModifyType
 	FLAG
 };
 
+enum TimeOfDay
+{
+	DAY,
+	NIGHT
+};
+
 void init_glfw();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -37,6 +43,7 @@ void setLights(Shader shader);
 void setFog(Shader shader);
 void changeCameraType();
 void changeModifyType();
+void changeTimeOfDay();
 glm::mat4 GetViewMatrix();
 glm::mat4 GetProjectionMatrix();
 float clamp(float n, float lower, float upper);
@@ -93,10 +100,13 @@ float sphereShininess = 32.0f;
 float flagSpecular = 0.5f;
 float flagShininess = 32.0f;
 
-// ustawienia zmiany w³aœciwoœci obeiktów
+// ustawienia zmiany w³aœciwoœci obiektów
 PropertyModifyType activeModifyType = SPHERE;
 float specularChangeSpeed = 0.2f;
 float shininessChangeSpeed = 16.0f;
+
+// pora dnia
+TimeOfDay timeOfDay = DAY;
 
 int main()
 {
@@ -123,6 +133,7 @@ int main()
 	glfwSetKeyCallback(window, settingsKeyCallback);
 
 	unsigned int daySkyboxTexture = loadCubemap("resources/skyboxes/day/");
+	unsigned int nightSkyBoxTexture = loadCubemap("resources/skyboxes/night/");
 	unsigned int groundAlbedoMap = loadTexture("resources/ground/Ground037_4K-JPG_Color.jpg");
 	unsigned int groundRoughnessMap = loadTexture("resources/ground/Ground037_4K-JPG_Roughness.jpg");
 	unsigned int boxDiffuseMap = loadTexture("resources/container/container2.png");
@@ -502,7 +513,20 @@ int main()
 		skyboxShader.setMat4("projection", projection);
 		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, daySkyboxTexture);
+		switch (timeOfDay)
+		{
+		case DAY:
+		{
+			glBindTexture(GL_TEXTURE_CUBE_MAP, daySkyboxTexture);
+			break;
+		}
+		case NIGHT:
+		{
+			glBindTexture(GL_TEXTURE_CUBE_MAP, nightSkyBoxTexture);
+			break;
+		}
+		}
+
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 		glDepthFunc(GL_LESS);
@@ -730,6 +754,8 @@ void settingsKeyCallback(GLFWwindow* window, int key, int scancode, int action, 
 		changeCameraType();
 	if (key == GLFW_KEY_M && action == GLFW_PRESS)
 		changeModifyType();
+	if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		changeTimeOfDay();
 }
 
 void setLights(Shader shader)
@@ -744,9 +770,24 @@ void setLights(Shader shader)
 	shader.setFloat("pointLights[0].quadratic", 0.017f);
 	// directional light
 	shader.setVec3("dirLightDirection", sunPos);
-	shader.setVec3("dirLight.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-	shader.setVec3("dirLight.diffuse", glm::vec3(0.4f, 0.4f, 0.4f));
-	shader.setVec3("dirLight.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+	switch (timeOfDay)
+	{
+	case DAY:
+	{
+		shader.setVec3("dirLight.ambient", glm::vec3(0.3f, 0.3f, 0.4f));
+		shader.setVec3("dirLight.diffuse", glm::vec3(0.8f, 0.8f, 0.7f));
+		shader.setVec3("dirLight.specular", glm::vec3(1.0f, 1.0f, 0.9f));
+		break;
+	}	
+	case NIGHT:
+	{
+		shader.setVec3("dirLight.ambient", glm::vec3(0.05f, 0.05f, 0.1f));
+		shader.setVec3("dirLight.diffuse", glm::vec3(0.1f, 0.1f, 0.2f));
+		shader.setVec3("dirLight.specular", glm::vec3(0.2f, 0.2f, 0.3f));
+		break;
+	}
+	}
+	
 	// flashlight
 	shader.setVec3("flashlightPos[0]", flashlightPos);
 	shader.setVec3("flashlightDir[0]", flashlightDir);
@@ -781,6 +822,13 @@ void changeModifyType()
 	int aMTint = static_cast<int>(activeModifyType);
 	aMTint = (aMTint + 1) % 2;
 	activeModifyType = static_cast<PropertyModifyType>(aMTint);
+}
+
+void changeTimeOfDay()
+{
+	int tODint = static_cast<int>(timeOfDay);
+	tODint = (tODint + 1) % 2;
+	timeOfDay = static_cast<TimeOfDay>(tODint);
 }
 
 glm::mat4 GetViewMatrix()
