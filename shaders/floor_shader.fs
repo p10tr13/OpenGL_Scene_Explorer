@@ -53,7 +53,6 @@ in vec3 FlashlightPos[NR_FLASHLIGHTS];
 in vec3 FlashlightDir[NR_FLASHLIGHTS];
 
 uniform sampler2D albedoMap;
-uniform sampler2D roughnessMap;
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform Fog fog;
@@ -95,9 +94,8 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightDirection
 
     vec3 ambient = light.ambient * vec3(texture(albedoMap, TextCoord));
     vec3 diffuse = light.diffuse * max(dot(normal, lightDir), 0.0) * vec3(texture(albedoMap, TextCoord));
-    vec3 specular ;//= light.specular * pow(max(dot(viewDir, reflectDir), 0.0), 256.0f) * (vec3(1.0) - vec3(texture(roughnessMap, TextCoord)));
 
-    return (ambient + specular + diffuse);
+    return (ambient + diffuse);
 };
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos)
@@ -107,12 +105,11 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 
     vec3 ambient = light.ambient * vec3(texture(albedoMap, TextCoord));
     vec3 diffuse = max(dot(normal, lightDir), 0.0) * light.diffuse * vec3(texture(albedoMap, TextCoord));
-    vec3 specular ;//= pow(max(dot(viewDir, reflectDir), 0.0), 256.0f) * (vec3(1.0) - vec3(texture(roughnessMap, TextCoord))) * light.specular;
 
     float distance = length(lightPos - FragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * distance * distance);
 
-    return ((ambient + specular + diffuse) * attenuation);
+    return ((ambient + diffuse) * attenuation);
 };
 
 vec3 CalcFlashlight(Flashlight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos, vec3 direction)
@@ -123,7 +120,6 @@ vec3 CalcFlashlight(Flashlight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 
     vec3 ambient = light.ambient * vec3(texture(albedoMap, TextCoord));
     vec3 diffuse = max(dot(normal, lightDir), 0.0) * light.diffuse * vec3(texture(albedoMap, TextCoord));
-    vec3 specular ;//= pow(max(dot(viewDir, reflectDir), 0.0), 256.0f) * (vec3(1.0) - vec3(texture(roughnessMap, TextCoord))) * light.specular;
 
     float theta = dot(lightDir, normalize(-direction));
     float epsilon = (light.cutOff - light.outerCutOff);
@@ -132,7 +128,7 @@ vec3 CalcFlashlight(Flashlight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     float distance = length(lightPos - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
-    return ((ambient + specular + diffuse) * attenuation * intensity);
+    return ((ambient + diffuse) * attenuation * intensity);
 };
 
 float CalcFogFactor()

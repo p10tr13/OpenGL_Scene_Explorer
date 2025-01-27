@@ -141,7 +141,6 @@ int main()
 	unsigned int daySkyboxTexture = loadCubemap("resources/skyboxes/day/");
 	unsigned int nightSkyBoxTexture = loadCubemap("resources/skyboxes/night/");
 	unsigned int groundAlbedoMap = loadTexture("resources/ground/Ground037_4K-JPG_Color.jpg");
-	unsigned int groundRoughnessMap = loadTexture("resources/ground/Ground037_4K-JPG_Roughness.jpg");
 	unsigned int boxDiffuseMap = loadTexture("resources/container/container2.png");
 	unsigned int boxSpecularMap = loadTexture("resources/container/container2_specular.png");
 
@@ -381,7 +380,6 @@ int main()
 
 	floorShader.use();
 	floorShader.setInt("albedoMap", 0);
-	floorShader.setInt("roughnessMap", 1);
 
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
@@ -505,8 +503,6 @@ int main()
 		glBindVertexArray(floorVAO);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, groundAlbedoMap);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, groundRoughnessMap);
 		model = glm::mat4(1.0f);
 		floorShader.setMat4("model", model);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
