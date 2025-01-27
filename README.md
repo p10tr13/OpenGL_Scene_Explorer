@@ -3,6 +3,7 @@ Poruszanie się po świecie: WASD + myszka\
 Zmiana kamer: C\
 Mgła: F\
 Zmiana pory dnia: P\
+Phong lub Blinn: B\
 Zmiana kierunku świecenia reflektora (przód/tył): N (tylko kiedy tryb edycji obiektu wybrany przez M jest ustawiony na reflektorze)\
 Zmiana obiektu, który jest edytowany przez strzałki: M\
 Kolejność zmian: sfera -> flaga -> kierunek reflektora na poruszającym się obiekcie -> wiatr flagi -> sfera itd.\
