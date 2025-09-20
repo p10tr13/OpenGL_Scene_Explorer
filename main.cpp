@@ -50,55 +50,58 @@ glm::mat4 GetViewMatrix();
 glm::mat4 GetProjectionMatrix();
 float clamp(float n, float lower, float upper);
 
-// ustawienia ekranu
+// screen settings
 const unsigned int SCR_WIDTH = 1200;
 const unsigned int SCR_HEIGHT = 800;
 
-// ustawienia kamery
+// camera settings
 CameraType activeCameraType = FREE;
+
 // free
 Camera freeCamera(glm::vec3(0.0f, 0.5f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+
 // static
 Camera staticCamera(3.0f, 4.5f, 4.0f, 0.0f, 0.0f, 0.0f);
+
 // tracking
 Camera trackingCamera(glm::vec3(0.0f, 3.0f, 4.0f));
 
-// ustawienia mg³y
+// fog parameters
 bool fogOn = false;
 float fogExpDensity = 2.0f;
 float fogEnd = -200.0f;
 glm::vec3 fogColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
-// Czas, aby poruszanie kamery nie zale¿a³o od szybkoœci wykonywania pêtli render loop
+// measured time to not depend on the speed of the render loop
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// po³o¿enie oœwietlenia
+// light positions
 glm::vec3 lightPos(1.2f, 1.0f, 3.0f);
 glm::vec3 sunPos(0.2f, -1.0f, 0.3f);
 glm::vec3 flashlightPos(0.0f, 0.0f, 0.0f);
 glm::vec3 flashlightStartDir(0.0f, 0.0f, 1.0f);
 glm::vec3 flashlightDir(0.0f, 0.0f, 0.0f);
 
-// poruszanie siê obiektu po okrêgu
+// object movement parameters
 const float RADIUS = 0.5f;
 const float CIRCURAL_SPEED = 1.0f;
 const float Y_POSITION = 0.25f;
 float theta = 0.0f;
 
-// animacja flagi
+// flag animation
 float windFreq = 2.0f;
 const float windAmp = 0.4f;
 float windSpeed = 1.0f;
 
-// w³aœciwoœci sfery
+// sphere properties
 float sphereSpecular = 0.5f;
 float sphereShininess = 32.0f;
 
-// w³aœciwoœci flagi
+// flag properties
 float flagSpecular = 0.5f;
 float flagShininess = 32.0f;
 
@@ -110,7 +113,7 @@ float spotlightDirChangeSpeed = 0.4f;
 float windFreqChangeSpeed = 0.2f;
 float windSpeedChangeSpeed = 0.2f;
 
-// pora dnia
+// time of the day
 TimeOfDay timeOfDay = DAY;
 
 int main()
