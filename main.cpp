@@ -105,7 +105,7 @@ float sphereShininess = 32.0f;
 float flagSpecular = 0.5f;
 float flagShininess = 32.0f;
 
-// ustawienia zmiany w³aœciwoœci obiektów
+// objects properties
 PropertyModifyType activeModifyType = SPHERE;
 float specularChangeSpeed = 0.2f;
 float shininessChangeSpeed = 16.0f;
@@ -120,7 +120,7 @@ int main()
 {
 	init_glfw();
 
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GK Projekt 4", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL Scene Explorer", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
